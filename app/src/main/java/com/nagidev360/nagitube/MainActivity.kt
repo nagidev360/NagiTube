@@ -280,7 +280,7 @@ private fun SearchBar(value: String, onValue: (String) -> Unit, onSearch: () -> 
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
         trailingIcon = {
             IconButton(onClick = onSearch) {
-                Icon(Icons.Default.ArrowForward, "Search videos", tint = Accent)
+                Icon(Icons.Default.Search, "Search videos", tint = Accent)
             }
         }
     )
