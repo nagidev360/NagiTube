@@ -29,27 +29,25 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      # GitHub's Ubuntu runner already includes Android SDK. Avoid the
-      # setup-android action, which may request the removed "tools" package.
       - name: Locate Android SDK
         shell: bash
         run: |
           set -euo pipefail
-          echo "ANDROID_HOME=${ANDROID_HOME:-not-set}"
-          test -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" || \
-            test -x "${ANDROID_HOME}/cmdline-tools/16.0/bin/sdkmanager" || \
-            test -x "${ANDROID_HOME}/tools/bin/sdkmanager"
+          test -n "${ANDROID_HOME:-}"
           if [ -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
             echo "${ANDROID_HOME}/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           elif [ -x "${ANDROID_HOME}/cmdline-tools/16.0/bin/sdkmanager" ]; then
             echo "${ANDROID_HOME}/cmdline-tools/16.0/bin" >> "$GITHUB_PATH"
           else
-            echo "${ANDROID_HOME}/tools/bin" >> "$GITHUB_PATH"
+            echo "Android SDK command-line tools not found in ${ANDROID_HOME}"
+            exit 1
           fi
 
       - name: Accept Android SDK licenses
         shell: bash
-        run: yes | sdkmanager --licenses
+        run: |
+          set +o pipefail
+          yes | sdkmanager --licenses
 
       - name: Install required Android SDK packages
         shell: bash
