@@ -1,6 +1,9 @@
 package com.nagidev360.nagitube
 
+import android.app.PictureInPictureParams
+import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -43,6 +46,27 @@ private val Accent = Color(0xFFFF1744)
 private const val PREFS = "nagitube_library"
 
 class MainActivity : ComponentActivity() {
+    @Volatile private var videoOpen = false
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (videoOpen && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            runCatching {
+                if (packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE)) {
+                    enterPictureInPictureMode(
+                        PictureInPictureParams.Builder()
+                            .setAspectRatio(Rational(16, 9))
+                            .build()
+                    )
+                }
+            }
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: android.content.res.Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { NagiTubeApp() }
@@ -95,6 +119,7 @@ private fun NagiTubeApp() {
     }
 
     fun openVideo(video: YouTubeVideo) {
+        (context as? MainActivity)?.videoOpen = true
         selectedVideo = video
         history = (listOf(video.id) + history.filterNot { it == video.id }).take(50)
         saveList(prefs, "history", history)
@@ -113,7 +138,7 @@ private fun NagiTubeApp() {
                         video = selectedVideo!!,
                         saved = selectedVideo!!.id in watchLater,
                         favorite = selectedVideo!!.id in favorites,
-                        onBack = { selectedVideo = null },
+                        onBack = { (context as? MainActivity)?.videoOpen = false; selectedVideo = null },
                         onWatchLater = {
                             watchLater = toggleSaved(watchLater, selectedVideo!!.id)
                             saveList(prefs, "watch_later", watchLater)
