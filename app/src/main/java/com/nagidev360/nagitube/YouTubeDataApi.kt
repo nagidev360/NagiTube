@@ -35,6 +35,8 @@ internal object YouTubeDataApi {
                 val params = Uri.Builder()
                     .appendQueryParameter("part", "snippet")
                     .appendQueryParameter("type", "video")
+                    .appendQueryParameter("videoEmbeddable", "true")
+                    .appendQueryParameter("safeSearch", "moderate")
                     .appendQueryParameter("maxResults", "25")
                     .appendQueryParameter("q", query.ifBlank { "popular music" })
                     .appendQueryParameter("key", key)
