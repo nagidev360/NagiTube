@@ -100,6 +100,8 @@ private fun NagiTubeApp() {
         saveList(prefs, "history", history)
     }
 
+    LaunchedEffect(Unit) { runSearch("popular videos") }
+
     MaterialTheme(colorScheme = if (darkMode) darkColorScheme(
         primary = Accent, background = Color(0xFF0F1115), surface = Color(0xFF191C22),
         onBackground = Color.White, onSurface = Color.White
@@ -223,7 +225,7 @@ private fun SearchBar(value: String, onValue: (String) -> Unit, onSearch: () -> 
 }
 
 @Composable
-private fun Feed(
+private fun ColumnScope.Feed(
     videos: List<YouTubeVideo>, loading: Boolean, error: String?, category: String,
     onCategory: (String) -> Unit, onOpen: (YouTubeVideo) -> Unit, onRetry: () -> Unit
 ) {
