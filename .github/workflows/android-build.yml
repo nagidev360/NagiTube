@@ -1,4 +1,5 @@
 name: Android Debug APK
+# CI preflight: build source before distributing the APK
 
 on:
   push:
