@@ -66,6 +66,22 @@ private fun NagiTubeApp() {
     var searchVisible by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
     var submittedSearch by remember { mutableStateOf("Hindi Telugu Tamil English hit songs") }
+    var submittedVideoUrl by remember { mutableStateOf<String?>(null) }
+
+    fun submitSearchOrUrl(raw: String) {
+        val value = raw.trim()
+        val uri = runCatching { Uri.parse(value) }.getOrNull()
+        val host = uri?.host?.lowercase()
+        val isYouTubeUrl = (uri?.scheme == "https" || uri?.scheme == "http") &&
+            host in setOf("youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be")
+        if (isYouTubeUrl) {
+            submittedVideoUrl = value
+        } else {
+            submittedVideoUrl = null
+            submittedSearch = value.ifBlank { "Hindi Telugu Tamil English hit songs" }
+        }
+        selectedTab = "Music"
+    }
     var hasVideoPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, videoPermission()) == PackageManager.PERMISSION_GRANTED)
     }
@@ -130,16 +146,10 @@ private fun NagiTubeApp() {
                         singleLine = true, label = { Text("Search songs on YouTube") },
                         placeholder = { Text("Song, singer, movie…") },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = {
-                            submittedSearch = searchText.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
-                            selectedTab = "Music"
-                        }),
+                        keyboardActions = KeyboardActions(onSearch = { submitSearchOrUrl(searchText) }),
                         trailingIcon = {
                             Icon(Icons.Default.Search, "Search songs",
-                                modifier = Modifier.clickable {
-                                    submittedSearch = searchText.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
-                                    selectedTab = "Music"
-                                })
+                                modifier = Modifier.clickable { submitSearchOrUrl(searchText) })
                         }
                     )
                 }
@@ -150,7 +160,7 @@ private fun NagiTubeApp() {
                 }
 
                 when (selectedTab) {
-                    "Music" -> YouTubeBrowser(submittedSearch)
+                    "Music" -> YouTubeBrowser(submittedSearch, submittedVideoUrl)
                     else -> {
                         Text(
                             if (selectedTab == "Local") "Videos on your phone" else "Local videos",
@@ -180,7 +190,7 @@ private fun NagiTubeApp() {
 }
 
 @Composable
-private fun YouTubeBrowser(searchQuery: String) {
+private fun YouTubeBrowser(searchQuery: String, videoUrl: String?) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { viewContext ->
@@ -191,12 +201,12 @@ private fun YouTubeBrowser(searchQuery: String) {
                 webViewClient = WebViewClient()
                 webChromeClient = WebChromeClient()
                 val initialQuery = java.net.URLEncoder.encode(searchQuery, "UTF-8")
-                loadUrl("https://m.youtube.com/results?search_query=$initialQuery")
+                loadUrl(videoUrl ?: "https://m.youtube.com/results?search_query=$initialQuery")
             }
         },
         update = { webView ->
             val query = searchQuery.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
-            val target = "https://m.youtube.com/results?search_query=" + java.net.URLEncoder.encode(query, "UTF-8")
+            val target = videoUrl ?: ("https://m.youtube.com/results?search_query=" + java.net.URLEncoder.encode(query, "UTF-8"))
             if (webView.url != target) webView.loadUrl(target)
         }
     )
