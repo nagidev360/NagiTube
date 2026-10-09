@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -308,12 +309,19 @@ private fun VideoPlayerScreen(
     onWatchLater: () -> Unit, onFavorite: () -> Unit
 ) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Row(
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
-            Text("Now playing", fontWeight = FontWeight.Bold, fontSize = 19.sp)
+            Column(Modifier.padding(start = 4.dp)) {
+                Text("Now playing", fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                Text("NagiTube player", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = .6f))
+            }
         }
-        AndroidView(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f), factory = { ctx ->
+        AndroidView(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+            .background(Color.Black).clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)), factory = { ctx ->
             WebView(ctx).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
@@ -330,10 +338,10 @@ private fun VideoPlayerScreen(
                     "text/html", "UTF-8", null)
             }
         })
-        Text(video.title, Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp),
-            color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(video.title, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
+            color = MaterialTheme.colorScheme.onBackground, fontSize = 19.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold)
         Text(video.channel, Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .7f))
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f), fontSize = 14.sp)
         Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(
                 onClick = onWatchLater,
