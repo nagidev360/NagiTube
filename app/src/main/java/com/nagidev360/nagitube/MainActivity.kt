@@ -70,12 +70,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { NagiTubeAuthGate { onLogout -> NagiTubeApp(onLogout) } }
+        setContent { NagiTubeApp() }
     }
 }
 
 @Composable
-private fun NagiTubeApp(onLogout: () -> Unit) {
+private fun NagiTubeApp() {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, 0) }
     val scope = rememberCoroutineScope()
@@ -187,8 +187,7 @@ private fun NagiTubeApp(onLogout: () -> Unit) {
                         })
                         "Settings" -> SettingsScreen(
                             darkMode, { darkMode = it; prefs.edit().putBoolean("dark_mode", it).apply() },
-                            parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() },
-                            onLogout
+                            parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() }
                         )
                         else -> {
                             SearchBar(query, { query = it }, { tab = "Search"; runSearch(query) })
@@ -442,7 +441,7 @@ private fun LibraryScreen(
 @Composable
 private fun SettingsScreen(
     darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean,
-    onParentalMode: (Boolean) -> Unit, onLogout: () -> Unit
+    onParentalMode: (Boolean) -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -463,14 +462,9 @@ private fun SettingsScreen(
             Switch(checked = parentalMode, onCheckedChange = onParentalMode)
         }
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-        Text("Account", fontWeight = FontWeight.SemiBold)
-        Text("Google sign-in and YouTube account actions are not enabled in this build.", fontSize = 13.sp)
-        Spacer(Modifier.height(12.dp))
         Text("Privacy", fontWeight = FontWeight.SemiBold)
         Text("Search history and saved video IDs are stored locally on this device. API requests use the configured YouTube Data API key.",
             fontSize = 13.sp)
-        Spacer(Modifier.height(24.dp))
-        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
     }
 }
 
