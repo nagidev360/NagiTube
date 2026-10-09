@@ -190,12 +190,36 @@ private fun NagiTubeApp() {
                             parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() }
                         )
                         else -> {
-                            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("All", "Music", "Gaming", "News", "Live").forEach { item ->
-                                    FilterChip(selected = category == item, onClick = {
-                                        category = item
-                                        runSearch(if (item == "All") "popular videos" else item.lowercase(), item)
-                                    }, label = { Text(item) })
+                            SearchBar(query, { query = it }, { tab = "Search"; runSearch(query) })
+                            Text("What are you into?", Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
+                                color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            androidx.compose.foundation.lazy.LazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(listOf("Music", "Gaming", "Tech", "Comedy", "News", "Sports", "Movies", "Learning")) { item ->
+                                    FilterChip(
+                                        selected = category == item,
+                                        onClick = {
+                                            category = item
+                                            runSearch(if (item == "All") "popular videos" else item.lowercase(), item)
+                                        },
+                                        label = { Text(item) }
+                                    )
+                                }
+                            }
+                            if (recentSearches.isNotEmpty()) {
+                                Text("Picked from your searches", Modifier.padding(start = 16.dp, top = 2.dp, bottom = 4.dp),
+                                    color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(recentSearches.take(8)) { term ->
+                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(24), maxLines = 1) })
+                                    }
                                 }
                             }
                             Feed(videos, loading, error, category, { filter ->
@@ -243,11 +267,22 @@ private fun Header(onSearch: () -> Unit, onProfile: () -> Unit) {
 
 @Composable
 private fun SearchBar(value: String, onValue: (String) -> Unit, onSearch: () -> Unit) {
-    OutlinedTextField(value = value, onValueChange = onValue, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        singleLine = true, label = { Text("Search YouTube videos") }, placeholder = { Text("Song, creator, topic…") },
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValue,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(18.dp),
+        singleLine = true,
+        placeholder = { Text("Search songs, creators, gaming…") },
+        leadingIcon = { Icon(Icons.Default.Search, "Search", tint = Accent) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        trailingIcon = { IconButton(onClick = onSearch) { Icon(Icons.Default.Search, "Search") } })
+        trailingIcon = {
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Default.ArrowForward, "Search videos", tint = Accent)
+            }
+        }
+    )
 }
 
 @Composable
