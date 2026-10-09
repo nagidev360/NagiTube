@@ -35,6 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,6 +65,7 @@ private fun NagiTubeApp() {
     var selectedTab by remember { mutableStateOf("Home") }
     var searchVisible by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
+    var submittedSearch by remember { mutableStateOf("Hindi Telugu Tamil English hit songs") }
     var hasVideoPermission by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, videoPermission()) == PackageManager.PERMISSION_GRANTED)
     }
@@ -123,21 +127,30 @@ private fun NagiTubeApp() {
                     OutlinedTextField(
                         value = searchText, onValueChange = { searchText = it },
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        singleLine = true, label = { Text("Search YouTube") },
+                        singleLine = true, label = { Text("Search songs on YouTube") },
+                        placeholder = { Text("Song, singer, movie…") },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            submittedSearch = searchText.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
+                            selectedTab = "Music"
+                        }),
                         trailingIcon = {
-                            Icon(Icons.Default.Search, "Search YouTube",
-                                modifier = Modifier.clickable { selectedTab = "YouTube" })
+                            Icon(Icons.Default.Search, "Search songs",
+                                modifier = Modifier.clickable {
+                                    submittedSearch = searchText.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
+                                    selectedTab = "Music"
+                                })
                         }
                     )
                 }
                 Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Home", "YouTube", "Local").forEach { tab ->
+                    listOf("Home", "Music", "Local").forEach { tab ->
                         Button(onClick = { selectedTab = tab }) { Text(tab) }
                     }
                 }
 
                 when (selectedTab) {
-                    "YouTube" -> YouTubeBrowser(searchText)
+                    "Music" -> YouTubeBrowser(submittedSearch)
                     else -> {
                         Text(
                             if (selectedTab == "Local") "Videos on your phone" else "Local videos",
@@ -167,7 +180,7 @@ private fun NagiTubeApp() {
 }
 
 @Composable
-private fun YouTubeBrowser(searchText: String) {
+private fun YouTubeBrowser(searchQuery: String) {
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { viewContext ->
@@ -177,15 +190,14 @@ private fun YouTubeBrowser(searchText: String) {
                 settings.mediaPlaybackRequiresUserGesture = true
                 webViewClient = WebViewClient()
                 webChromeClient = WebChromeClient()
-                loadUrl("https://m.youtube.com")
+                val initialQuery = java.net.URLEncoder.encode(searchQuery, "UTF-8")
+                loadUrl("https://m.youtube.com/results?search_query=$initialQuery")
             }
         },
         update = { webView ->
-            val query = searchText.trim()
-            if (query.isNotEmpty()) {
-                val target = "https://m.youtube.com/results?search_query=" + java.net.URLEncoder.encode(query, "UTF-8")
-                if (webView.url != target) webView.loadUrl(target)
-            }
+            val query = searchQuery.trim().ifBlank { "Hindi Telugu Tamil English hit songs" }
+            val target = "https://m.youtube.com/results?search_query=" + java.net.URLEncoder.encode(query, "UTF-8")
+            if (webView.url != target) webView.loadUrl(target)
         }
     )
 }
