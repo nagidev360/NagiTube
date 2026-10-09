@@ -41,7 +41,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import org.json.JSONArray
+import org.json.JSONObject
 
 private val Accent = Color(0xFFFF1744)
 private const val PREFS = "nagitube_library"
@@ -70,7 +75,94 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { NagiTubeApp() }
+        setContent { ActivationGate { NagiTubeApp() } }
+    }
+}
+
+
+private const val KEY_VERIFY_URL = "https://nagi-key-4sli.onrender.com/api/key/verify"
+
+@Composable
+private fun ActivationGate(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("nagitube_activation", 0) }
+    val scope = rememberCoroutineScope()
+    var key by remember { mutableStateOf("") }
+    var checking by remember { mutableStateOf(false) }
+    var activated by remember { mutableStateOf(false) }
+    var expiry by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    if (activated) {
+        content()
+    } else {
+        MaterialTheme {
+            Surface(Modifier.fillMaxSize(), color = Color(0xFF101116)) {
+                Column(
+                    Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("NagiTube", color = Accent, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                    Text("Activate with your license key", color = Color.White, modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
+                    OutlinedTextField(
+                        value = key, onValueChange = { key = it },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                        label = { Text("NAGI license key") },
+                        placeholder = { Text("NAGI-...") }
+                    )
+                    Button(
+                        onClick = {
+                            if (key.isBlank() || checking) return@Button
+                            checking = true
+                            message = "Verifying key…"
+                            scope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        val conn = (URL(KEY_VERIFY_URL).openConnection() as HttpURLConnection)
+                                        conn.requestMethod = "POST"
+                                        conn.connectTimeout = 12000
+                                        conn.readTimeout = 12000
+                                        conn.doOutput = true
+                                        conn.setRequestProperty("Content-Type", "application/json")
+                                        conn.setRequestProperty("Accept", "application/json")
+                                        conn.outputStream.use {
+                                            it.write(JSONObject().put("key", key.trim()).toString().toByteArray(Charsets.UTF_8))
+                                        }
+                                        val stream = if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream
+                                        val body = stream.bufferedReader().use { it.readText() }
+                                        conn.disconnect()
+                                        JSONObject(body)
+                                    }.getOrNull()
+                                }
+                                checking = false
+                                if (result != null && result.optBoolean("valid") && result.optString("product") == "NAGITUBE") {
+                                    expiry = result.optString("expiresAt")
+                                    prefs.edit().putString("activation_key", key.trim()).putString("expires_at", expiry).apply()
+                                    activated = true
+                                    message = ""
+                                } else {
+                                    message = when (result?.optString("reason")) {
+                                        "EXPIRED" -> "This key has expired."
+                                        "PRODUCT_MISMATCH" -> "This key is not for NagiTube."
+                                        "INVALID_SIGNATURE", "INVALID_FORMAT", "INVALID_PAYLOAD" -> "Invalid license key."
+                                        else -> "Could not verify key. Check internet and try again."
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !checking,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                    ) {
+                        if (checking) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Text("Activate NagiTube")
+                    }
+                    if (message.isNotBlank()) Text(message, color = Color(0xFFFF8090), modifier = Modifier.padding(top = 14.dp))
+                    Text("Internet connection is required for activation.", color = Color.LightGray, fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 24.dp))
+                }
+            }
+        }
     }
 }
 
