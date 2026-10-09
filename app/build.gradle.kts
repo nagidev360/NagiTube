@@ -11,6 +11,14 @@ val localPropertiesFile = rootProject.file("local.properties")
 if (localPropertiesFile.exists()) {
     localPropertiesFile.inputStream().use(localProperties::load)
 }
+val supabaseUrl = providers.gradleProperty("SUPABASE_URL")
+    .orElse(providers.environmentVariable("SUPABASE_URL"))
+    .orElse(localProperties.getProperty("SUPABASE_URL") ?: "")
+    .get()
+val supabaseAnonKey = providers.gradleProperty("SUPABASE_ANON_KEY")
+    .orElse(providers.environmentVariable("SUPABASE_ANON_KEY"))
+    .orElse(localProperties.getProperty("SUPABASE_ANON_KEY") ?: "")
+    .get()
 val youtubeApiKey = providers.gradleProperty("YOUTUBE_API_KEY")
     .orElse(providers.environmentVariable("YOUTUBE_API_KEY"))
     .orElse(localProperties.getProperty("YOUTUBE_API_KEY") ?: "")
@@ -27,6 +35,8 @@ android {
         versionCode = 2
         versionName = "0.2.0"
         buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildFeatures {
