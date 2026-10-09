@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
 }
 
 
-private const val KEY_VERIFY_URL = "https://nagi-key-4sli.onrender.com/api/key/verify"
+private const val KEY_VERIFY_URL = "https://nagi-key-x4ov.onrender.com/api/key/verify"
 
 @Composable
 private fun ActivationGate(content: @Composable () -> Unit) {
