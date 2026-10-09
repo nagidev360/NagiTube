@@ -70,12 +70,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { NagiTubeAuthGate { NagiTubeApp() } }
+        setContent { NagiTubeAuthGate { onLogout -> NagiTubeApp(onLogout) } }
     }
 }
 
 @Composable
-private fun NagiTubeApp() {
+private fun NagiTubeApp(onLogout: () -> Unit) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS, 0) }
     val scope = rememberCoroutineScope()
@@ -187,7 +187,8 @@ private fun NagiTubeApp() {
                         })
                         "Settings" -> SettingsScreen(
                             darkMode, { darkMode = it; prefs.edit().putBoolean("dark_mode", it).apply() },
-                            parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() }
+                            parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() },
+                            onLogout
                         )
                         else -> {
                             SearchBar(query, { query = it }, { tab = "Search"; runSearch(query) })
@@ -440,7 +441,8 @@ private fun LibraryScreen(
 
 @Composable
 private fun SettingsScreen(
-    darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean, onParentalMode: (Boolean) -> Unit
+    darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean,
+    onParentalMode: (Boolean) -> Unit, onLogout: () -> Unit
 ) {
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
@@ -467,6 +469,8 @@ private fun SettingsScreen(
         Text("Privacy", fontWeight = FontWeight.SemiBold)
         Text("Search history and saved video IDs are stored locally on this device. API requests use the configured YouTube Data API key.",
             fontSize = 13.sp)
+        Spacer(Modifier.height(24.dp))
+        OutlinedButton(onClick = onLogout, modifier = Modifier.fillMaxWidth()) { Text("Sign out") }
     }
 }
 
