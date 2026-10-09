@@ -6,6 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -72,8 +75,20 @@ private fun NagiTubeApp() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.PlayCircle, contentDescription = null, tint = Color(0xFF8AB4F8))
-                        Text(" NagiTube", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Box(
+                            modifier = Modifier.size(38.dp)
+                                .background(Color(0xFFFF1744), RoundedCornerShape(11.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.PlayArrow,
+                                contentDescription = "NagiTube logo",
+                                tint = Color.White,
+                                modifier = Modifier.size(27.dp)
+                            )
+                        }
+                        Text(" Nagi", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        Text("Tube", fontSize = 23.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFF1744))
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.White,
