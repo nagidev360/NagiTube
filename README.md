@@ -44,6 +44,13 @@ This is an actively developed app, not a complete YouTube client replacement. Go
 
 Playback uses YouTube's official embedded player and does not download, scrape, or bypass restrictions. Some videos disable embedding, require sign-in/age verification, or are blocked by region, and therefore may not play inside the app. Authenticated actions require supported official APIs and user authorization; this app does not simulate them.
 
+
+## Creator/community backend foundation
+
+A Supabase SQL migration is available at [`supabase/migrations/202610090001_community_creator.sql`](supabase/migrations/202610090001_community_creator.sql). It defines profiles, creator channels, uploaded-video metadata, likes, comments, subscriptions, Row Level Security policies, and private Storage-folder policies. Setup instructions: [`docs/SUPABASE_BACKEND_SETUP.md`](docs/SUPABASE_BACKEND_SETUP.md).
+
+**Important:** these backend files establish the database and access-control foundation; they do not yet connect the Android UI to Supabase. Login, live likes/comments/subscriptions, creator upload screens, video processing/transcoding, and account-synced feeds require client and server integration. Do not treat the SQL migration alone as a complete production video-hosting service.
+
 ## Project structure
 
 - `app/src/main/java/com/nagidev360/nagitube/MainActivity.kt` — Compose UI, player, local library, settings.
