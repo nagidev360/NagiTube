@@ -322,7 +322,8 @@ private fun VideoPlayerScreen(
                 webViewClient = WebViewClient()
                 loadDataWithBaseURL("https://www.youtube.com",
                     """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-                    <body style="margin:0;background:#000"><iframe width="100%" height="100%" style="position:absolute;inset:0;border:0"
+                    <html style="margin:0;padding:0;width:100%;height:100%;background:#000"><body style="margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000">
+                    <iframe width="100%" height="100%" style="display:block;width:100%;height:100%;border:0"
                     src="https://www.youtube.com/embed/${video.id}?playsinline=1&controls=1&fs=1&cc_load_policy=0&rel=0"
                     title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>""",
@@ -333,16 +334,38 @@ private fun VideoPlayerScreen(
             color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text(video.channel, Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = .7f))
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onWatchLater) { Icon(Icons.Default.Bookmark, null); Spacer(Modifier.width(5.dp)); Text(if (saved) "Saved" else "Watch later") }
-            OutlinedButton(onClick = onFavorite) { Text(if (favorite) "♥ Favorite" else "♡ Favorite") }
-            OutlinedButton(onClick = {
-                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(android.content.Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=${video.id}")
-                }
-                context.startActivity(android.content.Intent.createChooser(send, "Share video"))
-            }) { Icon(Icons.Default.Share, null); Text("Share") }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(
+                onClick = onWatchLater,
+                modifier = Modifier.weight(1.15f),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Bookmark, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(if (saved) "Saved" else "Watch later", maxLines = 1, fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = onFavorite,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+            ) {
+                Text(if (favorite) "♥ Favorite" else "♡ Favorite", maxLines = 1, fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=${video.id}")
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, "Share video"))
+                },
+                modifier = Modifier.weight(.72f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Share", maxLines = 1, fontSize = 12.sp)
+            }
         }
         Text(video.description, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = .8f))
         Text("Playback uses YouTube's official embedded player. Some videos may require sign-in or be unavailable for embedding.",
