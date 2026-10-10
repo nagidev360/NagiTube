@@ -343,6 +343,13 @@ private fun VideoPlayerScreen(
                 }
                 context.startActivity(android.content.Intent.createChooser(send, "Share video"))
             }) { Icon(Icons.Default.Share, null); Text("Share") }
+            OutlinedButton(onClick = {
+                val intent = android.content.Intent(
+                    android.content.Intent.ACTION_VIEW,
+                    android.net.Uri.parse("https://www.youtube.com/watch?v=${video.id}")
+                )
+                context.startActivity(intent)
+            }) { Text("Open in YouTube") }
         }
         Text(video.description, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = .8f))
         Text("Playback uses YouTube's official embedded player. Some videos may require sign-in or be unavailable for embedding.",
