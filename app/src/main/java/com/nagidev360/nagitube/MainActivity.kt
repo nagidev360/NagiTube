@@ -487,7 +487,29 @@ private fun VideoPlayerScreen(
                 }
                 settings.loadsImagesAutomatically = true
                 settings.javaScriptCanOpenWindowsAutomatically = true
-                loadUrl("https://www.youtube.com/embed/${video.id}?playsinline=1&controls=1&fs=1&rel=0")
+                // YouTube requires a Referer for embedded playback in Android WebView.
+                // Load the official embed in HTML with the app package as its base URL.
+                val appOrigin = "https://${ctx.packageName}/"
+                val playerHtml = """
+                    <!doctype html>
+                    <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                      <meta name="referrer" content="strict-origin-when-cross-origin">
+                      <style>
+                        html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
+                        iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+                      </style>
+                    </head>
+                    <body>
+                      <iframe src="https://www.youtube.com/embed/${video.id}?playsinline=1&amp;controls=1&amp;fs=1&amp;rel=0"
+                        title="YouTube video player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </body>
+                    </html>
+                """.trimIndent()
+                loadDataWithBaseURL(appOrigin, playerHtml, "text/html", "UTF-8", null)
             }
         })
         Text(video.title, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
