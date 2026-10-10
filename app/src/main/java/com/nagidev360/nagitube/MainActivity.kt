@@ -46,7 +46,7 @@ private val Accent = Color(0xFFFF1744)
 private const val PREFS = "nagitube_library"
 
 class MainActivity : ComponentActivity() {
-    @Volatile private var videoOpen = false
+    @Volatile var videoOpen = false
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
