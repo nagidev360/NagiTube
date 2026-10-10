@@ -32,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -40,13 +41,21 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import org.json.JSONArray
+import org.json.JSONObject
 
-private val Accent = Color(0xFFFF1744)
+private val Accent = Color(0xFFFF3158)
+private val AppBackground = Color(0xFF080B12)
+private val CardBackground = Color(0xFF121827)
+private val MutedText = Color(0xFF9BA7BC)
 private const val PREFS = "nagitube_library"
 
 class MainActivity : ComponentActivity() {
-    @Volatile private var videoOpen = false
+    @Volatile var videoOpen = false
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
@@ -70,6 +79,93 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent { NagiTubeApp() }
+    }
+}
+
+
+private const val KEY_VERIFY_URL = "https://nagi-key-x4ov.onrender.com/api/key/verify"
+
+@Composable
+private fun ActivationGate(content: @Composable () -> Unit) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("nagitube_activation", 0) }
+    val scope = rememberCoroutineScope()
+    var key by remember { mutableStateOf("") }
+    var checking by remember { mutableStateOf(false) }
+    var activated by remember { mutableStateOf(false) }
+    var expiry by remember { mutableStateOf("") }
+    var message by remember { mutableStateOf("") }
+
+    if (activated) {
+        content()
+    } else {
+        MaterialTheme {
+            Surface(Modifier.fillMaxSize(), color = Color(0xFF101116)) {
+                Column(
+                    Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("NagiTube", color = Accent, fontSize = 34.sp, fontWeight = FontWeight.Bold)
+                    Text("Activate with your license key", color = Color.White, modifier = Modifier.padding(top = 8.dp, bottom = 24.dp))
+                    OutlinedTextField(
+                        value = key, onValueChange = { key = it },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                        label = { Text("NAGI license key") },
+                        placeholder = { Text("NAGI-...") }
+                    )
+                    Button(
+                        onClick = {
+                            if (key.isBlank() || checking) return@Button
+                            checking = true
+                            message = "Verifying key…"
+                            scope.launch {
+                                val result = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        val conn = (URL(KEY_VERIFY_URL).openConnection() as HttpURLConnection)
+                                        conn.requestMethod = "POST"
+                                        conn.connectTimeout = 12000
+                                        conn.readTimeout = 12000
+                                        conn.doOutput = true
+                                        conn.setRequestProperty("Content-Type", "application/json")
+                                        conn.setRequestProperty("Accept", "application/json")
+                                        conn.outputStream.use {
+                                            it.write(JSONObject().put("key", key.trim()).toString().toByteArray(Charsets.UTF_8))
+                                        }
+                                        val stream = if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream
+                                        val body = stream.bufferedReader().use { it.readText() }
+                                        conn.disconnect()
+                                        JSONObject(body)
+                                    }.getOrNull()
+                                }
+                                checking = false
+                                if (result != null && result.optBoolean("valid") && result.optString("product") == "NAGITUBE") {
+                                    expiry = result.optString("expiresAt")
+                                    prefs.edit().putString("activation_key", key.trim()).putString("expires_at", expiry).apply()
+                                    activated = true
+                                    message = ""
+                                } else {
+                                    message = when (result?.optString("reason")) {
+                                        "EXPIRED" -> "This key has expired."
+                                        "PRODUCT_MISMATCH" -> "This key is not for NagiTube."
+                                        "INVALID_SIGNATURE", "INVALID_FORMAT", "INVALID_PAYLOAD" -> "Invalid license key."
+                                        else -> "Could not verify key. Check internet and try again."
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !checking,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                    ) {
+                        if (checking) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                        else Text("Activate NagiTube")
+                    }
+                    if (message.isNotBlank()) Text(message, color = Color(0xFFFF8090), modifier = Modifier.padding(top = 14.dp))
+                    Text("Internet connection is required for activation.", color = Color.LightGray, fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 24.dp))
+                }
+            }
+        }
     }
 }
 
@@ -128,8 +224,8 @@ private fun NagiTubeApp() {
     LaunchedEffect(Unit) { runSearch("popular videos") }
 
     MaterialTheme(colorScheme = if (darkMode) darkColorScheme(
-        primary = Accent, background = Color(0xFF0F1115), surface = Color(0xFF191C22),
-        onBackground = Color.White, onSurface = Color.White
+        primary = Accent, background = AppBackground, surface = CardBackground,
+        onBackground = Color(0xFFF6F7FB), onSurface = Color(0xFFF6F7FB)
     ) else lightColorScheme(primary = Accent)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column {
@@ -156,9 +252,13 @@ private fun NagiTubeApp() {
                             if (recentSearches.isNotEmpty()) {
                                 Text("Recent searches", Modifier.padding(start = 16.dp, top = 8.dp),
                                     color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
-                                Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    recentSearches.take(4).forEach { term ->
-                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(18)) })
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(recentSearches.take(10)) { term ->
+                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(22), maxLines = 1) })
                                     }
                                 }
                             }
@@ -173,9 +273,13 @@ private fun NagiTubeApp() {
                         }
                         "Music" -> {
                             SearchBar(query, { query = it }, { runSearch(query) })
-                            Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("Hindi songs", "Telugu hits", "Tamil songs", "lofi music").forEach { term ->
-                                    SuggestionChip(onClick = { runSearch(term) }, label = { Text(term) })
+                            androidx.compose.foundation.lazy.LazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(listOf("Hindi songs", "Telugu hits", "Tamil songs", "lofi music")) { term ->
+                                    SuggestionChip(onClick = { runSearch(term) }, label = { Text(term, maxLines = 1) })
                                 }
                             }
                             Feed(videos, loading, error, category, { category = it; runSearch(submittedQuery, it) }, ::openVideo,
@@ -189,12 +293,36 @@ private fun NagiTubeApp() {
                             parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() }
                         )
                         else -> {
-                            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("All", "Music", "Gaming", "News", "Live").forEach { item ->
-                                    FilterChip(selected = category == item, onClick = {
-                                        category = item
-                                        runSearch(if (item == "All") "popular videos" else item.lowercase(), item)
-                                    }, label = { Text(item) })
+                            SearchBar(query, { query = it }, { tab = "Search"; runSearch(query) })
+                            Text("What are you into?", Modifier.padding(start = 16.dp, top = 8.dp, bottom = 4.dp),
+                                color = MaterialTheme.colorScheme.onBackground, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+                            androidx.compose.foundation.lazy.LazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(listOf("Music", "Gaming", "Tech", "Comedy", "News", "Sports", "Movies", "Learning")) { item ->
+                                    FilterChip(
+                                        selected = category == item,
+                                        onClick = {
+                                            category = item
+                                            runSearch(if (item == "All") "popular videos" else item.lowercase(), item)
+                                        },
+                                        label = { Text(item) }
+                                    )
+                                }
+                            }
+                            if (recentSearches.isNotEmpty()) {
+                                Text("Picked from your searches", Modifier.padding(start = 16.dp, top = 2.dp, bottom = 4.dp),
+                                    color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(recentSearches.take(8)) { term ->
+                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(24), maxLines = 1) })
+                                    }
                                 }
                             }
                             Feed(videos, loading, error, category, { filter ->
@@ -203,7 +331,7 @@ private fun NagiTubeApp() {
                             }, ::openVideo, onRetry = { runSearch(submittedQuery) })
                         }
                     }
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                         NavigationBarItem(selected = tab == "Home", onClick = { tab = "Home"; if (videos.isEmpty()) runSearch("popular videos") },
                             icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
                         NavigationBarItem(selected = tab == "Shorts", onClick = { tab = "Shorts"; runSearch("shorts", "Shorts") },
@@ -223,30 +351,70 @@ private fun NagiTubeApp() {
 
 @Composable
 private fun Header(onSearch: () -> Unit, onProfile: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(35.dp).background(Accent, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.SmartDisplay, "NagiTube", tint = Color.White)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                    .background(Accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.SmartDisplay, contentDescription = "NagiTube", tint = Color.White, modifier = Modifier.size(27.dp))
             }
-            Text(" Nagi", color = MaterialTheme.colorScheme.onBackground, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-            Text("Tube", color = Accent, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Nagi", color = MaterialTheme.colorScheme.onBackground, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Tube", color = Accent, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text("WATCH MORE. FEEL MORE.", color = MutedText, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.1.sp)
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            Icon(Icons.Default.Search, "Search", Modifier.clickable(onClick = onSearch), tint = MaterialTheme.colorScheme.onBackground)
-            Icon(Icons.Default.AccountCircle, "Profile and settings", Modifier.clickable(onClick = onProfile),
-                tint = MaterialTheme.colorScheme.onBackground)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                onClick = onSearch,
+                shape = RoundedCornerShape(15.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Search, contentDescription = "Search videos", tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
+            Surface(
+                onClick = onProfile,
+                shape = RoundedCornerShape(15.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile and settings", tint = MaterialTheme.colorScheme.onBackground)
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun SearchBar(value: String, onValue: (String) -> Unit, onSearch: () -> Unit) {
-    OutlinedTextField(value = value, onValueChange = onValue, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-        singleLine = true, label = { Text("Search YouTube videos") }, placeholder = { Text("Song, creator, topic…") },
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValue,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 7.dp),
+        shape = RoundedCornerShape(20.dp),
+        singleLine = true,
+        placeholder = { Text("Search songs, creators, gaming…") },
+        leadingIcon = { Icon(Icons.Default.Search, "Search", tint = Accent) },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { onSearch() }),
-        trailingIcon = { IconButton(onClick = onSearch) { Icon(Icons.Default.Search, "Search") } })
+        trailingIcon = {
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Default.Search, "Search videos", tint = Accent)
+            }
+        }
+    )
 }
 
 @Composable
@@ -284,19 +452,35 @@ private fun ColumnScope.Feed(
 
 @Composable
 private fun VideoCard(video: YouTubeVideo, onOpen: (YouTubeVideo) -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable { onOpen(video) }.padding(bottom = 16.dp)) {
-        AsyncImage(model = video.thumbnail, contentDescription = video.title,
-            modifier = Modifier.fillMaxWidth().height(215.dp).background(Color(0xFF272C35)))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-            Box(Modifier.size(40.dp).background(Accent, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.SmartDisplay, null, tint = Color.White)
+    Column(Modifier.fillMaxWidth().clickable { onOpen(video) }.padding(bottom = 18.dp)) {
+        AsyncImage(
+            model = video.thumbnail,
+            contentDescription = video.title,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF272C35))
+        )
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.Top) {
+            Box(Modifier.size(42.dp).background(Accent, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.SmartDisplay, null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
             Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                Text(video.title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
-                    maxLines = 2)
-                Spacer(Modifier.height(4.dp))
-                Text(video.channel + " · " + video.publishedAt.take(10),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f), fontSize = 12.sp)
+                Text(
+                    video.title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    maxLines = 2
+                )
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    video.channel + " · " + video.publishedAt.take(10),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f),
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -308,41 +492,91 @@ private fun VideoPlayerScreen(
     onWatchLater: () -> Unit, onFavorite: () -> Unit
 ) {
     val context = LocalContext.current
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        Row(
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surface).padding(horizontal = 8.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
-            Text("Now playing", fontWeight = FontWeight.Bold, fontSize = 19.sp)
+            Column(Modifier.padding(start = 4.dp)) {
+                Text("Now playing", fontWeight = FontWeight.Bold, fontSize = 19.sp)
+                Text("NagiTube player", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = .6f))
+            }
         }
-        AndroidView(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f), factory = { ctx ->
+        AndroidView(modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+            .background(Color.Black).clip(RoundedCornerShape(bottomStart = 14.dp, bottomEnd = 14.dp)), factory = { ctx ->
             WebView(ctx).apply {
                 settings.javaScriptEnabled = true
                 settings.domStorageEnabled = true
                 settings.mediaPlaybackRequiresUserGesture = true
                 webChromeClient = WebChromeClient()
                 webViewClient = WebViewClient()
-                loadDataWithBaseURL("https://www.youtube.com",
-                    """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-                    <body style="margin:0;background:#000"><iframe width="100%" height="100%" style="position:absolute;inset:0;border:0"
-                    src="https://www.youtube.com/embed/${video.id}?playsinline=1&controls=1&fs=1&cc_load_policy=0&rel=0"
-                    title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>""",
-                    "text/html", "UTF-8", null)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                }
+                settings.loadsImagesAutomatically = true
+                settings.javaScriptCanOpenWindowsAutomatically = true
+                // YouTube requires a Referer for embedded playback in Android WebView.
+                // Load the official embed in HTML with the app package as its base URL.
+                val appOrigin = "https://${ctx.packageName}/"
+                val playerHtml = """
+                    <!doctype html>
+                    <html>
+                    <head>
+                      <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+                      <meta name="referrer" content="strict-origin-when-cross-origin">
+                      <style>
+                        html, body { margin:0; padding:0; width:100%; height:100%; background:#000; overflow:hidden; }
+                        iframe { position:absolute; inset:0; width:100%; height:100%; border:0; }
+                      </style>
+                    </head>
+                    <body>
+                      <iframe src="https://www.youtube.com/embed/${video.id}?playsinline=1&amp;controls=1&amp;fs=1&amp;rel=0"
+                        title="YouTube video player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                    </body>
+                    </html>
+                """.trimIndent()
+                loadDataWithBaseURL(appOrigin, playerHtml, "text/html", "UTF-8", null)
             }
         })
-        Text(video.title, Modifier.padding(start = 16.dp, end = 16.dp, top = 14.dp),
-            color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(video.title, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
+            color = MaterialTheme.colorScheme.onBackground, fontSize = 19.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold)
         Text(video.channel, Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .7f))
-        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(onClick = onWatchLater) { Icon(Icons.Default.Bookmark, null); Spacer(Modifier.width(5.dp)); Text(if (saved) "Saved" else "Watch later") }
-            OutlinedButton(onClick = onFavorite) { Text(if (favorite) "♥ Favorite" else "♡ Favorite") }
-            OutlinedButton(onClick = {
-                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(android.content.Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=${video.id}")
-                }
-                context.startActivity(android.content.Intent.createChooser(send, "Share video"))
-            }) { Icon(Icons.Default.Share, null); Text("Share") }
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f), fontSize = 14.sp)
+        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(
+                onClick = onWatchLater,
+                modifier = Modifier.weight(1.15f),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Bookmark, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(if (saved) "Saved" else "Watch later", maxLines = 1, fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = onFavorite,
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 10.dp)
+            ) {
+                Text(if (favorite) "♥ Favorite" else "♡ Favorite", maxLines = 1, fontSize = 12.sp)
+            }
+            OutlinedButton(
+                onClick = {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, "https://www.youtube.com/watch?v=${video.id}")
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, "Share video"))
+                },
+                modifier = Modifier.weight(.72f),
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 10.dp)
+            ) {
+                Icon(Icons.Default.Share, null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Share", maxLines = 1, fontSize = 12.sp)
+            }
         }
         Text(video.description, Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = .8f))
         Text("Playback uses YouTube's official embedded player. Some videos may require sign-in or be unavailable for embedding.",
@@ -374,11 +608,15 @@ private fun LibraryScreen(
 
 @Composable
 private fun SettingsScreen(
-    darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean, onParentalMode: (Boolean) -> Unit
+    darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean,
+    onParentalMode: (Boolean) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Text("Settings", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("Make NagiTube feel right for you", fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f),
+            modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Dark theme", fontWeight = FontWeight.SemiBold)
@@ -395,9 +633,6 @@ private fun SettingsScreen(
             Switch(checked = parentalMode, onCheckedChange = onParentalMode)
         }
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
-        Text("Account", fontWeight = FontWeight.SemiBold)
-        Text("Google sign-in and YouTube account actions are not enabled in this build.", fontSize = 13.sp)
-        Spacer(Modifier.height(12.dp))
         Text("Privacy", fontWeight = FontWeight.SemiBold)
         Text("Search history and saved video IDs are stored locally on this device. API requests use the configured YouTube Data API key.",
             fontSize = 13.sp)
