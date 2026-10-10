@@ -48,7 +48,10 @@ import java.net.URL
 import org.json.JSONArray
 import org.json.JSONObject
 
-private val Accent = Color(0xFFFF1744)
+private val Accent = Color(0xFFFF3158)
+private val AppBackground = Color(0xFF080B12)
+private val CardBackground = Color(0xFF121827)
+private val MutedText = Color(0xFF9BA7BC)
 private const val PREFS = "nagitube_library"
 
 class MainActivity : ComponentActivity() {
@@ -221,8 +224,8 @@ private fun NagiTubeApp() {
     LaunchedEffect(Unit) { runSearch("popular videos") }
 
     MaterialTheme(colorScheme = if (darkMode) darkColorScheme(
-        primary = Accent, background = Color(0xFF0F1115), surface = Color(0xFF191C22),
-        onBackground = Color.White, onSurface = Color.White
+        primary = Accent, background = AppBackground, surface = CardBackground,
+        onBackground = Color(0xFFF6F7FB), onSurface = Color(0xFFF6F7FB)
     ) else lightColorScheme(primary = Accent)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column {
@@ -328,7 +331,7 @@ private fun NagiTubeApp() {
                             }, ::openVideo, onRetry = { runSearch(submittedQuery) })
                         }
                     }
-                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+                    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                         NavigationBarItem(selected = tab == "Home", onClick = { tab = "Home"; if (videos.isEmpty()) runSearch("popular videos") },
                             icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
                         NavigationBarItem(selected = tab == "Shorts", onClick = { tab = "Shorts"; runSearch("shorts", "Shorts") },
@@ -348,21 +351,47 @@ private fun NagiTubeApp() {
 
 @Composable
 private fun Header(onSearch: () -> Unit, onProfile: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(35.dp).background(Accent, RoundedCornerShape(10.dp)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.SmartDisplay, "NagiTube", tint = Color.White)
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                Modifier.size(42.dp).clip(RoundedCornerShape(14.dp))
+                    .background(Accent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.SmartDisplay, contentDescription = "NagiTube", tint = Color.White, modifier = Modifier.size(27.dp))
             }
-            Text(" Nagi", color = MaterialTheme.colorScheme.onBackground, fontSize = 23.sp, fontWeight = FontWeight.Bold)
-            Text("Tube", color = Accent, fontSize = 23.sp, fontWeight = FontWeight.Bold)
+            Column(verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Nagi", color = MaterialTheme.colorScheme.onBackground, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Tube", color = Accent, fontSize = 23.sp, fontWeight = FontWeight.ExtraBold)
+                }
+                Text("WATCH MORE. FEEL MORE.", color = MutedText, fontSize = 9.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.1.sp)
+            }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onSearch) {
-                Icon(Icons.Default.Search, "Search", tint = MaterialTheme.colorScheme.onBackground)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Surface(
+                onClick = onSearch,
+                shape = RoundedCornerShape(15.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Search, contentDescription = "Search videos", tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
-            IconButton(onClick = onProfile) {
-                Icon(Icons.Default.AccountCircle, "Profile and settings", tint = MaterialTheme.colorScheme.onBackground)
+            Surface(
+                onClick = onProfile,
+                shape = RoundedCornerShape(15.dp),
+                color = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(44.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.AccountCircle, contentDescription = "Profile and settings", tint = MaterialTheme.colorScheme.onBackground)
+                }
             }
         }
     }
@@ -373,8 +402,8 @@ private fun SearchBar(value: String, onValue: (String) -> Unit, onSearch: () -> 
     OutlinedTextField(
         value = value,
         onValueChange = onValue,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
-        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 7.dp),
+        shape = RoundedCornerShape(20.dp),
         singleLine = true,
         placeholder = { Text("Search songs, creators, gaming…") },
         leadingIcon = { Icon(Icons.Default.Search, "Search", tint = Accent) },
