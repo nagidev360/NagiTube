@@ -482,14 +482,12 @@ private fun VideoPlayerScreen(
                 settings.mediaPlaybackRequiresUserGesture = true
                 webChromeClient = WebChromeClient()
                 webViewClient = WebViewClient()
-                loadDataWithBaseURL("https://www.youtube.com",
-                    """<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-                    <html style="margin:0;padding:0;width:100%;height:100%;background:#000"><body style="margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000">
-                    <iframe width="100%" height="100%" style="display:block;width:100%;height:100%;border:0"
-                    src="https://www.youtube.com/embed/${video.id}?playsinline=1&controls=1&fs=1&cc_load_policy=0&rel=0"
-                    title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></body></html>""",
-                    "text/html", "UTF-8", null)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    android.webkit.CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
+                }
+                settings.loadsImagesAutomatically = true
+                settings.javaScriptCanOpenWindowsAutomatically = true
+                loadUrl("https://www.youtube.com/embed/${video.id}?playsinline=1&controls=1&fs=1&rel=0")
             }
         })
         Text(video.title, Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp),
