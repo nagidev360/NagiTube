@@ -249,9 +249,13 @@ private fun NagiTubeApp() {
                             if (recentSearches.isNotEmpty()) {
                                 Text("Recent searches", Modifier.padding(start = 16.dp, top = 8.dp),
                                     color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
-                                Row(Modifier.fillMaxWidth().padding(10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    recentSearches.take(4).forEach { term ->
-                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(18)) })
+                                androidx.compose.foundation.lazy.LazyRow(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    contentPadding = PaddingValues(horizontal = 12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(recentSearches.take(10)) { term ->
+                                        SuggestionChip(onClick = { runSearch(term) }, label = { Text(term.take(22), maxLines = 1) })
                                     }
                                 }
                             }
@@ -266,9 +270,13 @@ private fun NagiTubeApp() {
                         }
                         "Music" -> {
                             SearchBar(query, { query = it }, { runSearch(query) })
-                            Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("Hindi songs", "Telugu hits", "Tamil songs", "lofi music").forEach { term ->
-                                    SuggestionChip(onClick = { runSearch(term) }, label = { Text(term) })
+                            androidx.compose.foundation.lazy.LazyRow(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(listOf("Hindi songs", "Telugu hits", "Tamil songs", "lofi music")) { term ->
+                                    SuggestionChip(onClick = { runSearch(term) }, label = { Text(term, maxLines = 1) })
                                 }
                             }
                             Feed(videos, loading, error, category, { category = it; runSearch(submittedQuery, it) }, ::openVideo,
@@ -349,10 +357,13 @@ private fun Header(onSearch: () -> Unit, onProfile: () -> Unit) {
             Text(" Nagi", color = MaterialTheme.colorScheme.onBackground, fontSize = 23.sp, fontWeight = FontWeight.Bold)
             Text("Tube", color = Accent, fontSize = 23.sp, fontWeight = FontWeight.Bold)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-            Icon(Icons.Default.Search, "Search", Modifier.clickable(onClick = onSearch), tint = MaterialTheme.colorScheme.onBackground)
-            Icon(Icons.Default.AccountCircle, "Profile and settings", Modifier.clickable(onClick = onProfile),
-                tint = MaterialTheme.colorScheme.onBackground)
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onSearch) {
+                Icon(Icons.Default.Search, "Search", tint = MaterialTheme.colorScheme.onBackground)
+            }
+            IconButton(onClick = onProfile) {
+                Icon(Icons.Default.AccountCircle, "Profile and settings", tint = MaterialTheme.colorScheme.onBackground)
+            }
         }
     }
 }
@@ -412,19 +423,35 @@ private fun ColumnScope.Feed(
 
 @Composable
 private fun VideoCard(video: YouTubeVideo, onOpen: (YouTubeVideo) -> Unit) {
-    Column(Modifier.fillMaxWidth().clickable { onOpen(video) }.padding(bottom = 16.dp)) {
-        AsyncImage(model = video.thumbnail, contentDescription = video.title,
-            modifier = Modifier.fillMaxWidth().height(215.dp).background(Color(0xFF272C35)))
-        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.Top) {
-            Box(Modifier.size(40.dp).background(Accent, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.SmartDisplay, null, tint = Color.White)
+    Column(Modifier.fillMaxWidth().clickable { onOpen(video) }.padding(bottom = 18.dp)) {
+        AsyncImage(
+            model = video.thumbnail,
+            contentDescription = video.title,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF272C35))
+        )
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.Top) {
+            Box(Modifier.size(42.dp).background(Accent, RoundedCornerShape(50)), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.SmartDisplay, null, tint = Color.White, modifier = Modifier.size(22.dp))
             }
             Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                Text(video.title, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold, fontSize = 16.sp,
-                    maxLines = 2)
-                Spacer(Modifier.height(4.dp))
-                Text(video.channel + " · " + video.publishedAt.take(10),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f), fontSize = 12.sp)
+                Text(
+                    video.title,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    lineHeight = 21.sp,
+                    maxLines = 2
+                )
+                Spacer(Modifier.height(5.dp))
+                Text(
+                    video.channel + " · " + video.publishedAt.take(10),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f),
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -535,9 +562,12 @@ private fun SettingsScreen(
     darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean,
     onParentalMode: (Boolean) -> Unit
 ) {
-    Column(Modifier.fillMaxSize().padding(20.dp)) {
-        Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+        Text("Settings", fontSize = 26.sp, fontWeight = FontWeight.Bold)
+        Text("Make NagiTube feel right for you", fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = .65f),
+            modifier = Modifier.padding(top = 4.dp))
+        Spacer(Modifier.height(24.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Dark theme", fontWeight = FontWeight.SemiBold)
