@@ -71,7 +71,24 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleAuthIntent(intent)
         setContent { NagiTubeApp() }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleAuthIntent(intent)
+    }
+
+    private fun handleAuthIntent(intent: android.content.Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "nagitube" && uri.host == "auth" && uri.path == "/callback") {
+            Thread {
+                val message = SupabaseAuth.handleCallback(this, uri)
+                runOnUiThread { Toast.makeText(this, message, Toast.LENGTH_LONG).show() }
+            }.start()
+        }
     }
 }
 
