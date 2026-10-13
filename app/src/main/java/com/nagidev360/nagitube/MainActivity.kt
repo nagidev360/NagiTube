@@ -3,6 +3,8 @@ package com.nagidev360.nagitube
 import android.app.PictureInPictureParams
 import android.os.Build
 import android.os.Bundle
+import android.net.Uri
+import android.widget.Toast
 import android.util.Rational
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -383,6 +385,8 @@ private fun LibraryScreen(
 private fun SettingsScreen(
     darkMode: Boolean, onDarkMode: (Boolean) -> Unit, parentalMode: Boolean, onParentalMode: (Boolean) -> Unit
 ) {
+    val context = LocalContext.current
+    var authEmail by remember { mutableStateOf(SupabaseAuth.email(context)) }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
@@ -403,7 +407,21 @@ private fun SettingsScreen(
         }
         HorizontalDivider(Modifier.padding(vertical = 12.dp))
         Text("Account", fontWeight = FontWeight.SemiBold)
-        Text("Google sign-in and YouTube account actions are not enabled in this build.", fontSize = 13.sp)
+        Spacer(Modifier.height(8.dp))
+        if (authEmail == null) {
+            Button(onClick = {
+                val issue = SupabaseAuth.startGoogle(context)
+                if (issue != null) Toast.makeText(context, issue, Toast.LENGTH_LONG).show()
+            }, modifier = Modifier.fillMaxWidth()) { Text("Continue with Google") }
+            Text("Sign in securely with Google through Supabase Auth.", fontSize = 12.sp)
+        } else {
+            Text("Signed in as $authEmail", fontSize = 13.sp)
+            OutlinedButton(onClick = {
+                SupabaseAuth.signOut(context)
+                authEmail = null
+                Toast.makeText(context, "Signed out on this device.", Toast.LENGTH_SHORT).show()
+            }) { Text("Sign out") }
+        }
         Spacer(Modifier.height(12.dp))
         Text("Privacy", fontWeight = FontWeight.SemiBold)
         Text("Search history and saved video IDs are stored locally on this device. API requests use the configured YouTube Data API key.",
