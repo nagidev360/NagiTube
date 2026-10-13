@@ -68,6 +68,13 @@ jobs:
           set -euo pipefail
           gradle --no-daemon --stacktrace assembleDebug
 
+      - name: Print Android debug SHA-1
+        shell: bash
+        run: |
+          set -euo pipefail
+          gradle --no-daemon signingReport | tee signing-report.txt
+          echo "Find Variant: debug and copy the SHA1 value above/below it."
+
       - name: Verify APK output
         shell: bash
         run: |
