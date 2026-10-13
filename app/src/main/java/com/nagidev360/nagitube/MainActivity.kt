@@ -418,6 +418,14 @@ private fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var authEmail by remember { mutableStateOf(SupabaseAuth.email(context)) }
+    val authPrefs = remember { context.getSharedPreferences("nagitube_auth", android.content.Context.MODE_PRIVATE) }
+    DisposableEffect(authPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "email" || key == null) authEmail = SupabaseAuth.email(context)
+        }
+        authPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { authPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
