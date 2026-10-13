@@ -476,16 +476,6 @@ private fun toggleSaved(values: List<String>, id: String): List<String> =
     if (id in values) values - id else (listOf(id) + values).take(100)
 
 
-@Composable
-private fun BannerAd() {
-    AndroidView(
-        modifier = Modifier.fillMaxWidth().height(50.dp),
-        factory = { context ->
-            AdView(context).apply {
-                setAdSize(AdSize.BANNER)
-                adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID
-                loadAd(AdRequest.Builder().build())
-            }
         }
     )
 }
