@@ -5,10 +5,6 @@ import android.os.Build
 import android.os.Bundle
 import android.net.Uri
 import android.widget.Toast
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.AdView
-import com.google.android.gms.ads.AdSize
-import com.google.android.gms.ads.MobileAds
 import android.util.Rational
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -76,7 +72,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleAuthIntent(intent)
-        MobileAds.initialize(this) {}
         setContent { NagiTubeApp() }
     }
 
@@ -241,7 +236,6 @@ private fun NagiTubeApp() {
                             }, ::openVideo, onRetry = { runSearch(submittedQuery) })
                         }
                     }
-                    BannerAd()
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                         NavigationBarItem(selected = tab == "Home", onClick = { tab = "Home"; if (videos.isEmpty()) runSearch("popular videos") },
                             icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
