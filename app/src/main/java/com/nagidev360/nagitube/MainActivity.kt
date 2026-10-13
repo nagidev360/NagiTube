@@ -208,6 +208,20 @@ private fun NagiTubeApp() {
                             parentalMode, { parentalMode = it; prefs.edit().putBoolean("parental_mode", it).apply() }
                         )
                         else -> {
+                            Card(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                                shape = RoundedCornerShape(22.dp),
+                                colors = CardDefaults.cardColors(containerColor = Accent.copy(alpha = 0.13f))
+                            ) {
+                                Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                                    Text("YOUR DAILY PLAYLIST", color = Accent, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.height(5.dp))
+                                    Text("Find your next favorite.", color = MaterialTheme.colorScheme.onBackground,
+                                        fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                                    Text("Fresh videos, music and creators picked for you.",
+                                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 13.sp)
+                                }
+                            }
                             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 listOf("All", "Music", "Gaming", "News", "Live").forEach { item ->
                                     FilterChip(selected = category == item, onClick = {
