@@ -19,14 +19,6 @@ val supabaseAnonKey = providers.gradleProperty("SUPABASE_ANON_KEY")
     .orElse(providers.environmentVariable("SUPABASE_ANON_KEY"))
     .orElse(localProperties.getProperty("SUPABASE_ANON_KEY") ?: "")
     .get()
-val admobAppId = providers.gradleProperty("ADMOB_APP_ID")
-    .orElse(providers.environmentVariable("ADMOB_APP_ID"))
-    .orElse(localProperties.getProperty("ADMOB_APP_ID") ?: "ca-app-pub-3940256099942544~3347511713")
-    .get()
-val bannerAdUnitId = providers.gradleProperty("ADMOB_BANNER_AD_UNIT_ID")
-    .orElse(providers.environmentVariable("ADMOB_BANNER_AD_UNIT_ID"))
-    .orElse(localProperties.getProperty("ADMOB_BANNER_AD_UNIT_ID") ?: "ca-app-pub-3940256099942544/6300978111")
-    .get()
 val youtubeApiKey = providers.gradleProperty("YOUTUBE_API_KEY")
     .orElse(providers.environmentVariable("YOUTUBE_API_KEY"))
     .orElse(localProperties.getProperty("YOUTUBE_API_KEY") ?: "")
@@ -46,7 +38,6 @@ android {
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$bannerAdUnitId\"")
-        manifestPlaceholders["admobAppId"] = admobAppId
     }
 
     buildFeatures {
@@ -73,6 +64,5 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("io.coil-kt:coil-compose:2.7.0")
-    implementation("com.google.android.gms:play-services-ads:23.6.0")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
