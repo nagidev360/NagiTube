@@ -11,6 +11,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,6 +31,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SmartDisplay
+import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -106,6 +109,8 @@ private fun NagiTubeApp() {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var selectedVideo by remember { mutableStateOf<YouTubeVideo?>(null) }
+    var localVideoUri by remember { mutableStateOf<Uri?>(null) }
+    val pickLocalVideo = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> localVideoUri = uri }
     var watchLater by remember { mutableStateOf(readSaved(prefs, "watch_later")) }
     var favorites by remember { mutableStateOf(readSaved(prefs, "favorites")) }
     var history by remember { mutableStateOf(readSaved(prefs, "history")) }
@@ -200,6 +205,7 @@ private fun NagiTubeApp() {
                             Feed(videos, loading, error, category, { category = it; runSearch(submittedQuery, it) }, ::openVideo,
                                 onRetry = { runSearch(submittedQuery) })
                         }
+                        "Local" -> LocalVideoScreen(videoUri = localVideoUri, onPickVideo = { pickLocalVideo.launch("video/*") })
                         "Library" -> LibraryScreen(watchLater, favorites, history, videos, ::openVideo, onClearHistory = {
                             history = emptyList(); saveList(prefs, "history", history)
                         })
@@ -245,6 +251,8 @@ private fun NagiTubeApp() {
                             icon = { Icon(Icons.Default.LibraryMusic, null) }, label = { Text("Music") })
                         NavigationBarItem(selected = tab == "Library", onClick = { tab = "Library" },
                             icon = { Icon(Icons.Default.Bookmark, null) }, label = { Text("Library") })
+                        NavigationBarItem(selected = tab == "Local", onClick = { tab = "Local" },
+                            icon = { Icon(Icons.Default.VideoLibrary, null) }, label = { Text("Local") })
                         NavigationBarItem(selected = tab == "Settings", onClick = { tab = "Settings" },
                             icon = { Icon(Icons.Default.Settings, null) }, label = { Text("Settings") })
                     }
@@ -418,6 +426,14 @@ private fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var authEmail by remember { mutableStateOf(SupabaseAuth.email(context)) }
+    val authPrefs = remember { context.getSharedPreferences("nagitube_auth", android.content.Context.MODE_PRIVATE) }
+    DisposableEffect(authPrefs) {
+        val listener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == "email" || key == null) authEmail = SupabaseAuth.email(context)
+        }
+        authPrefs.registerOnSharedPreferenceChangeListener(listener)
+        onDispose { authPrefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Text("Settings", fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(16.dp))
