@@ -37,7 +37,6 @@ android {
         buildConfigField("String", "YOUTUBE_API_KEY", "\"$youtubeApiKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
-        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$bannerAdUnitId\"")
     }
 
     buildFeatures {
