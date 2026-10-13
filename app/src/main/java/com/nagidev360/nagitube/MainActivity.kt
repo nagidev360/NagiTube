@@ -474,8 +474,3 @@ private fun saveList(prefs: android.content.SharedPreferences, key: String, valu
 
 private fun toggleSaved(values: List<String>, id: String): List<String> =
     if (id in values) values - id else (listOf(id) + values).take(100)
-
-
-        }
-    )
-}
