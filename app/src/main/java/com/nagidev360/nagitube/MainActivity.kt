@@ -5,6 +5,10 @@ import android.os.Build
 import android.os.Bundle
 import android.net.Uri
 import android.widget.Toast
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.MobileAds
 import android.util.Rational
 import android.webkit.WebChromeClient
 import android.webkit.WebView
@@ -72,6 +76,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleAuthIntent(intent)
+        MobileAds.initialize(this) {}
         setContent { NagiTubeApp() }
     }
 
@@ -236,6 +241,7 @@ private fun NagiTubeApp() {
                             }, ::openVideo, onRetry = { runSearch(submittedQuery) })
                         }
                     }
+                    BannerAd()
                     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                         NavigationBarItem(selected = tab == "Home", onClick = { tab = "Home"; if (videos.isEmpty()) runSearch("popular videos") },
                             icon = { Icon(Icons.Default.Home, null) }, label = { Text("Home") })
@@ -474,3 +480,18 @@ private fun saveList(prefs: android.content.SharedPreferences, key: String, valu
 
 private fun toggleSaved(values: List<String>, id: String): List<String> =
     if (id in values) values - id else (listOf(id) + values).take(100)
+
+
+@Composable
+private fun BannerAd() {
+    AndroidView(
+        modifier = Modifier.fillMaxWidth().height(50.dp),
+        factory = { context ->
+            AdView(context).apply {
+                setAdSize(AdSize.BANNER)
+                adUnitId = BuildConfig.ADMOB_BANNER_AD_UNIT_ID
+                loadAd(AdRequest.Builder().build())
+            }
+        }
+    )
+}
